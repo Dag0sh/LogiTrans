@@ -2,11 +2,11 @@ import Foundation
 
 enum AppConfig {
     static var dbHost: String {
-        get { UserDefaults.standard.string(forKey: "db_host") ?? "" }
+        get { UserDefaults.standard.string(forKey: "db_host") ?? "172.20.10.2" }
         set { UserDefaults.standard.set(newValue, forKey: "db_host") }
     }
     static var dbPassword: String {
-        get { UserDefaults.standard.string(forKey: "db_password") ?? "" }
+        get { UserDefaults.standard.string(forKey: "db_password") ?? "1008" }
         set { UserDefaults.standard.set(newValue, forKey: "db_password") }
     }
     static let dbPort = 5432
