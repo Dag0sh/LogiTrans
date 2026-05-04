@@ -1,26 +1,16 @@
 import SwiftUI
 
 struct LoginView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var phone: String = ""
-    @State private var password: String = ""
-    @State private var errorMessage: String?
-    @State private var loggedInPosition: String?
-    @State private var loggedInFio: String?
-    @State private var isLoading: Bool = false
+    @StateObject private var vm = LoginViewModel()
     @FocusState private var focusedField: Field?
     @State private var path: [String] = []
 
-    enum Field {
-        case phone, password
-    }
+    enum Field { case phone, password }
 
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
-                Color(.systemGray6)
-                    .ignoresSafeArea()
-
+                Color(.systemGray6).ignoresSafeArea()
                 VStack(spacing: 28) {
                     VStack(spacing: 8) {
                         Text("Вход для сотрудника")
@@ -33,68 +23,44 @@ struct LoginView: View {
                     .padding(.top, 12)
 
                     VStack(spacing: 16) {
-                        TextField("Телефон", text: $phone)
+                        TextField("Телефон", text: $vm.phone)
                             .keyboardType(.phonePad)
                             .textInputAutocapitalization(.never)
                             .disableAutocorrection(true)
                             .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white)
-                                    .shadow(color: Color(.black).opacity(0.05), radius: 2, x: 0, y: 1)
-                            )
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white)
+                                .shadow(color: Color(.black).opacity(0.05), radius: 2, x: 0, y: 1))
                             .focused($focusedField, equals: .phone)
 
-                        SecureField("Пароль", text: $password)
+                        SecureField("Пароль", text: $vm.password)
                             .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white)
-                                    .shadow(color: Color(.black).opacity(0.05), radius: 2, x: 0, y: 1)
-                            )
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white)
+                                .shadow(color: Color(.black).opacity(0.05), radius: 2, x: 0, y: 1))
                             .focused($focusedField, equals: .password)
                     }
                     .padding(.horizontal, 22)
 
-                    Button(action: {
-                        isLoading = true
+                    Button {
                         focusedField = nil
-                        errorMessage = nil
                         Task {
-                            do {
-                                let (position, fio) = try await NetworkManager.shared.login(phone: phone, password: password)
-                                if let pos = position {
-                                    loggedInPosition = pos
-                                    loggedInFio = fio
-                                    path.append(pos)
-                                } else {
-                                    errorMessage = "Неверный телефон или пароль"
-                                }
-                            } catch let err {
-                                errorMessage = getFriendlyError(err)
-                            }
-                            isLoading = false
+                            await vm.login()
+                            if let pos = vm.loggedInPosition { path.append(pos) }
                         }
-                    }) {
+                    } label: {
                         HStack {
-                            if isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                    .padding(.trailing, 5)
-                            }
-                            Text("Войти")
-                                .font(.system(size: 18, weight: .semibold))
+                            if vm.isLoading { ProgressView().padding(.trailing, 5) }
+                            Text("Войти").font(.system(size: 18, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity)
                     }
-                    .disabled(isLoading || phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty)
+                    .disabled(vm.isLoading || !vm.canLogin)
                     .padding()
-                    .background(isLoading || phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty ? Color.gray.opacity(0.25) : Color.blue)
+                    .background(vm.isLoading || !vm.canLogin ? Color.gray.opacity(0.25) : Color.blue)
                     .foregroundColor(.white)
                     .cornerRadius(14)
                     .padding(.horizontal, 22)
 
-                    if let err = errorMessage {
+                    if let err = vm.errorMessage {
                         Text(err)
                             .foregroundColor(.red)
                             .font(.system(size: 16, weight: .semibold))
@@ -111,35 +77,22 @@ struct LoginView: View {
                 Group {
                     switch pos {
                     case "Руководитель":
-                        LeaderView(currentEmployeeFio: loggedInFio ?? "")
+                        LeaderView(currentEmployeeFio: vm.loggedInFio ?? "")
                             .navigationBarBackButtonHidden(true)
                     case "Администратор":
-                        AdminView()
-                            .navigationBarBackButtonHidden(true)
+                        AdminView().navigationBarBackButtonHidden(true)
                     case "Оператор":
-                        OperatorView(currentEmployeeFio: loggedInFio ?? "")
+                        OperatorView(currentEmployeeFio: vm.loggedInFio ?? "")
                             .navigationBarBackButtonHidden(true)
                     case "Работник склада":
-                        WarehouseView()
-                            .navigationBarBackButtonHidden(true)
+                        WarehouseView().navigationBarBackButtonHidden(true)
                     case "Менеджер":
-                        WarehouseLoadView()
-                            .navigationBarBackButtonHidden(true)
+                        WarehouseLoadView().navigationBarBackButtonHidden(true)
                     default:
-                        Text("Неизвестная роль")
-                            .navigationBarBackButtonHidden(true)
+                        Text("Неизвестная роль").navigationBarBackButtonHidden(true)
                     }
                 }
             }
-        }
-    }
-
-    func getFriendlyError(_ error: Error) -> String {
-        let errStr = error.localizedDescription
-        if errStr.contains("Неверный телефон") {
-            return "Неверный телефон или пароль"
-        } else {
-            return "Ошибка входа, проверьте данные"
         }
     }
 }

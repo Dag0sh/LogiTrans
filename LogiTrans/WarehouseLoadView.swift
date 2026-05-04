@@ -1,67 +1,37 @@
 import SwiftUI
 
 struct WarehouseLoadView: View {
-    @State private var loads: [WarehouseLoad] = []
-    @State private var error: String?
+    @StateObject private var vm = WarehouseLoadViewModel()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack {
-            Text("Загруженность складов")
-                .font(.title)
-                .padding()
-            Button("Загрузить данные") {
-                loadData()
-            }
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
+            Text("Загруженность складов").font(.title).padding()
 
-            if !loads.isEmpty {
-                List(loads, id: \.pointName) { load in
+            Button("Загрузить данные") {
+                Task { await vm.loadData() }
+            }
+            .padding().background(Color.blue).foregroundColor(.white).cornerRadius(10)
+
+            if !vm.loads.isEmpty {
+                List(vm.loads) { load in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(load.pointName)
-                            .font(.headline)
+                        Text(load.pointName).font(.headline)
                         Text("Занято слотов: \(load.occupiedSlots)")
                     }
                     .padding(.vertical, 4)
                 }
-            } else if let err = error {
-                Text(err)
-                    .foregroundColor(.red)
-                    .padding()
+            } else if let err = vm.error {
+                Text(err).foregroundColor(.red).padding()
             } else {
-                Text("Данные не загружены")
-                    .foregroundColor(.gray)
-                    .padding()
+                Text("Данные не загружены").foregroundColor(.gray).padding()
             }
         }
         .padding()
-        .refreshable {
-            loadData()
-        }
-        .onAppear {
-            loadData()
-        }
+        .refreshable { await vm.loadData() }
+        .onAppear { Task { await vm.loadData() } }
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Закрыть") {
-                    dismiss()
-                }
-            }
-        }
-    }
-
-    private func loadData() {
-        Task {
-            do {
-                loads = try await NetworkManager.shared.getWarehouseLoad()
-                print("Loaded \(loads.count) points with occupied slots")
-            } catch let err {
-                error = err.localizedDescription
-                print("Error loading warehouse: \(err.localizedDescription)")
-            }
+            ToolbarItem(placement: .navigationBarTrailing) { Button("Закрыть") { dismiss() } }
         }
     }
 }
