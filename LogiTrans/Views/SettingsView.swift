@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("db_host") private var dbHost = ""
-    @AppStorage("db_password") private var dbPassword = ""
+    @AppStorage("db_host") private var dbHost = "172.20.10.2"
+    @AppStorage("db_password") private var dbPassword = "1008"
     @Environment(\.dismiss) private var dismiss
     @State private var testResult: String?
     @State private var isTesting = false
