@@ -4,6 +4,7 @@ struct AdminView: View {
     @StateObject private var vm = AdminViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab = 0
+    @State private var showClientsList = false
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable {
@@ -126,18 +127,45 @@ struct AdminView: View {
 
     private var clientManagementView: some View {
         VStack(spacing: 8) {
-            adminField("Телефон клиента", text: $vm.clientPhone, keyboard: .phonePad, focus: .clientPhone)
-            adminField("Новый адрес", text: $vm.newClientAddress, focus: .newClientAddress)
-            adminField("Новое ФИО", text: $vm.newClientFio, focus: .newClientFio)
-            adminField("Новый пароль", text: $vm.newClientPassword, isSecure: true, focus: .newClientPassword)
-            HStack(spacing: 8) {
-                adminButton("Создать", color: .blue, systemImage: "person.crop.circle.badge.plus") { await vm.createClient() }
-                adminButton("Обновить", color: .blue, systemImage: "arrow.clockwise") { await vm.updateClient() }
-                adminButton("Удалить", color: .red, systemImage: "trash") { await vm.deleteClient() }
-            }.padding(.top, 4)
+            Button {
+                showClientsList = true
+            } label: {
+                HStack {
+                    Image(systemName: "list.bullet.rectangle.portrait")
+                    Text("Список клиентов")
+                        .font(.system(size: 15, weight: .medium))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                .padding(12)
+                .background(Color.white)
+                .cornerRadius(14)
+                .shadow(color: Color(.systemGray3).opacity(0.3), radius: 5, x: 0, y: 3)
+            }
+            .foregroundColor(.blue)
+            .padding(.horizontal)
+            .sheet(isPresented: $showClientsList) {
+                NavigationStack {
+                    ClientsListView(showCloseButton: true)
+                }
+            }
+
+            VStack(spacing: 8) {
+                adminField("Телефон клиента", text: $vm.clientPhone, keyboard: .phonePad, focus: .clientPhone)
+                adminField("Новый адрес", text: $vm.newClientAddress, focus: .newClientAddress)
+                adminField("Новое ФИО", text: $vm.newClientFio, focus: .newClientFio)
+                adminField("Новый пароль", text: $vm.newClientPassword, isSecure: true, focus: .newClientPassword)
+                HStack(spacing: 8) {
+                    adminButton("Создать", color: .blue, systemImage: "person.crop.circle.badge.plus") { await vm.createClient() }
+                    adminButton("Обновить", color: .blue, systemImage: "arrow.clockwise") { await vm.updateClient() }
+                    adminButton("Удалить", color: .red, systemImage: "trash") { await vm.deleteClient() }
+                }.padding(.top, 4)
+            }
+            .padding(12).background(Color.white).cornerRadius(14)
+            .shadow(color: Color(.systemGray3).opacity(0.3), radius: 5, x: 0, y: 3).padding(.horizontal)
         }
-        .padding(12).background(Color.white).cornerRadius(14)
-        .shadow(color: Color(.systemGray3).opacity(0.3), radius: 5, x: 0, y: 3).padding(.horizontal)
     }
 
     // MARK: - Points
