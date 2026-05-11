@@ -18,6 +18,7 @@ struct LeaderView: View {
             LeaderTab(view: AnyView(AdminView()), title: "Админ", icon: "gearshape.fill"),
             LeaderTab(view: AnyView(WarehouseView()), title: "Склад", icon: "shippingbox.fill"),
             LeaderTab(view: AnyView(WarehouseLoadView()), title: "Отчёты", icon: "chart.bar.fill"),
+            LeaderTab(view: AnyView(ClientsListView()), title: "Клиенты", icon: "person.2.fill"),
             LeaderTab(view: AnyView(ClientTrackingView()), title: "Трекинг", icon: "barcode.viewfinder")
         ]
     }

@@ -1,35 +1,56 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("db_host") private var dbHost = "172.20.10.2"
+    @AppStorage("db_host") private var dbHost = "192.168.50.56"
     @AppStorage("db_password") private var dbPassword = "1008"
     @Environment(\.dismiss) private var dismiss
+    @State private var portText = "\(AppConfig.dbPort)"
     @State private var testResult: String?
     @State private var isTesting = false
+    @State private var isDiscovering = false
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Подключение к базе данных") {
-                    TextField("IP-адрес сервера", text: $dbHost)
+                    TextField("Хост", text: $dbHost)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                         .keyboardType(.URL)
+
+                    HStack {
+                        Text("Порт")
+                        Spacer()
+                        TextField("5432", text: $portText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .onChange(of: portText) { v in
+                                if let p = Int(v) { AppConfig.dbPort = p }
+                            }
+                    }
+
                     SecureField("Пароль", text: $dbPassword)
                 }
 
                 Section {
+                    Button(action: discoverHost) {
+                        if isDiscovering {
+                            HStack { ProgressView(); Text("Ищем сервер в сети…") }
+                        } else {
+                            Label("Найти сервер в локальной сети", systemImage: "network")
+                        }
+                    }
+                    .disabled(isDiscovering || isTesting)
+
                     Button(action: testConnection) {
                         if isTesting {
-                            HStack {
-                                ProgressView()
-                                Text("Проверяем...")
-                            }
+                            HStack { ProgressView(); Text("Проверяем…") }
                         } else {
                             Text("Проверить соединение")
                         }
                     }
-                    .disabled(isTesting || dbHost.isEmpty || dbPassword.isEmpty)
+                    .disabled(isTesting || isDiscovering || dbHost.isEmpty || dbPassword.isEmpty)
                 }
 
                 if let result = testResult {
@@ -41,7 +62,6 @@ struct SettingsView: View {
 
                 Section("Параметры БД") {
                     LabeledContent("Пользователь", value: AppConfig.dbUser)
-                    LabeledContent("Порт", value: "\(AppConfig.dbPort)")
                     LabeledContent("База данных", value: AppConfig.dbName)
                 }
             }
@@ -51,6 +71,23 @@ struct SettingsView: View {
                     Button("Готово") { dismiss() }
                 }
             }
+        }
+    }
+
+    private func discoverHost() {
+        isDiscovering = true
+        testResult = nil
+        Task {
+            if let found = await DBDiscovery.findDBHost() {
+                dbHost = found
+                portText = "5432"
+                AppConfig.dbPort = 5432
+                await NetworkManager.shared.resetConnection()
+                testResult = "Найден сервер: \(found)"
+            } else {
+                testResult = "Сервер не найден. Убедитесь, что устройство в одной сети с ПК."
+            }
+            isDiscovering = false
         }
     }
 
